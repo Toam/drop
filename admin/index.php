@@ -1,4 +1,6 @@
-
+<?php
+    $upload_dir = "../up";
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,18 +36,49 @@
 
 <div class="container">
 <?php
-    if(!is_writable("../up")){
+    if(!is_writable($upload_dir)){
         echo '<div class="alert alert-danger">Could not write to upload folder</div>';
     }
 
+    if ($_GET["delete"]) {
+       $path = $upload_dir . DIRECTORY_SEPARATOR . $_GET["delete"];
+       unlink($path);
+       rmdir(dirname($path));
+       echo '<div class="alert alert-info">File deleted</div>';
+   }
 ?>
 
     <form action="drop_upload.php"
           class="dropzone"
-          id="my-dropzone"></form>
+          id="myDropzone"></form>
     <br/>
     <div class="well">
         <h3>Files</h3>
+        <ul id="fileList">
+        <?php
+            if ($handle = opendir($upload_dir)) {
+                $blacklist = array('.', '..', 'index.html');
+                while (false !== ($folder = readdir($handle))) {
+                    if (!in_array($folder, $blacklist)) {
+                        if ($handle_folder = opendir($upload_dir . DIRECTORY_SEPARATOR . $folder)) {
+                            while (false !== ($file = readdir($handle_folder))) {
+                                if (!in_array($file, $blacklist)) {
+                                    $file_path = $folder . DIRECTORY_SEPARATOR . $file;
+                                    echo "<li>";
+                                    echo '<a href="/up/' . $file_path . '">' . $file_path . "</a>";
+                                    echo " - ";
+                                    echo '<a href="?delete=' . $file_path . '">delete</a>';
+                                    echo "</li>";
+                                }
+                            }
+                        }
+                        closedir($handle_folder);
+                    }
+                }
+                closedir($handle);
+            }
+        ?>
+        </ul>
     </div>
 </div> <!-- /container -->
 
@@ -56,5 +89,18 @@
 <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/dropzone.js"></script>
+<script>
+    Dropzone.options.myDropzone = {
+        init: function() {
+            this.on("success", function(file,path) {
+                if(path) {
+                    $("#fileList").prepend('<li><a href="/up'+path+'">'+path+'</a> - <a href="?delete='+path+'">delete</a></li>');
+                } else {
+                   alert("Could not upload file (file too big ?)");
+                }
+            });
+        }
+    };
+</script>
 </body>
 </html>
